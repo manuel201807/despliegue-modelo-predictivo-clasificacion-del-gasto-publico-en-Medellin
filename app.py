@@ -126,16 +126,18 @@ if 'contrato_analizado' in st.session_state and modelo is not None:
         pred = int(modelo.predict(df)[0])
         probs = dict(zip(modelo.classes_, modelo.predict_proba(df)[0]))
         st.subheader('Resultado del análisis')
-        st.markdown(f'<div class="result"><small>DESTINO DEL GASTO ESTIMADO</small><h2>{CLASES[pred]}</h2>Clasificación generada a partir de las características ingresadas.</div>', unsafe_allow_html=True)
-        a,b = st.columns(2)
-        for col, clase in [(a,1),(b,0)]:
-            col.metric(CLASES[clase], f'{probs[clase]:.1%}')
-            col.progress(float(probs[clase]))
+        st.markdown(f'<div class="result"><small>DESTINO DEL GASTO ESTIMADO</small><h2>{CLASES[pred]}</h2></div>', unsafe_allow_html=True)
+        # La categoría predicha se muestra primero; las probabilidades solo en la gráfica.
+        st.markdown('#### Probabilidades estimadas de clasificación')
         grafica = px.bar(pd.DataFrame({'Destino': [CLASES[1], CLASES[0]], 'Probabilidad': [probs[1], probs[0]]}), x='Probabilidad', y='Destino', color='Destino', orientation='h', color_discrete_map={CLASES[1]: PALETA_MEDELLIN[1], CLASES[0]: PALETA_MEDELLIN[0]}, color_discrete_sequence=PALETA_MEDELLIN, text_auto='.1%')
         grafica.update_layout(showlegend=False, height=250, paper_bgcolor='#F8F9FA', plot_bgcolor='#EAF1EC', font_color='#173D59', margin=dict(l=10,r=25,t=15,b=15))
         grafica.update_xaxes(range=[0,1], tickformat='.0%')
         st.plotly_chart(grafica, use_container_width=True)
-        st.caption('Las probabilidades son estimaciones del modelo, no garantías de acierto ni una decisión presupuestal oficial.')
+        st.caption('Las probabilidades son estimaciones del modelo, no garantías de acierto.')
+        # Error promedio de clasificación del Stacking en validación cruzada de 10 folds.
+        accuracy_cv = 0.951959
+        error_cv = (1 - accuracy_cv) * 100
+        st.warning(f'Nota: el modelo presenta un porcentaje de error de clasificación estimado del {error_cv:.2f} % (exactitud promedio del {accuracy_cv*100:.2f} % en validación cruzada de 10 particiones).'.replace('4.80', '4,80').replace('95.20', '95,20'))
         salida = df.assign(Destino_Gasto_Estimado=CLASES[pred], Probabilidad_Inversion=probs[1], Probabilidad_Funcionamiento=probs[0])
         with st.expander('Consultar información analizada'):
             st.dataframe(salida, hide_index=True)
